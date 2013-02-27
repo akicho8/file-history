@@ -1,0 +1,24 @@
+#+OPTIONS: toc:nil num:nil author:nil creator:nil \n:nil |:t
+#+OPTIONS: @:t ::t ^:t -:t f:t *:t <:t
+
+* File buffer history selector
+
+  Example:
+
+  : (require 'file-history)
+  : (global-set-key (kbd "C-t") 'file-history)
+
+  type C-t:
+
+  : No Filename Path
+  : == ======== =================================
+  :  1 a.rb     /Users/foo/bin/
+  :  2 b.el     /Users/foo/.emacs.d/
+  :  3 c.el     /Users/foo/.emacs.d/
+  :  4 d.el     /Users/foo/.emacs.d/file-history/
+
+  - type RET:         switch to "1 a.rb"
+  - type C-t:         switch to "2 b.el"
+  - type C-n C-n RET: switch to "3 c.el"
+
+
