@@ -45,24 +45,13 @@
 (defvar file-history-exclude-regexp "\\.\\(elc\\|jpg\\|gif\\|bmp\\|png\\)$"
   "正規表現にマッチするファイルはリストに表示させない")
 
-(defvar file-history-padding-top 10
-  "プレビュー画面に表示させるカーソル位置からの上方向への行数")
-
-(defvar file-history-padding-bottom 20
-  "プレビュー画面に表示させるカーソル位置からの下方向への行数")
-
 ;; 以下は内部用
 (defvar file-history-before-buffer nil
   "file-historyを起動する前のバッファ")
 (defvar file-history-buffers nil
   "ファイルリスト")
-(defvar file-history-preview nil
-  "プレビューフラグ")
 (defvar file-history-current-dir nil
   "前回いたディレクトリ")
-
-(defvar file-history-overlays nil)
-(make-variable-buffer-local 'file-history-overlays)
 
 (defvar file-history-mode-hook nil
   "フック")
@@ -97,7 +86,6 @@
     (switch-to-buffer (get-buffer-create file-history-buffer-name))
     (cd file-history-current-dir)
     (setq file-history-buffers (file-history-get-buffer-list))
-    (setq file-history-preview nil)
     (file-history-draw)
     (file-history-index-set 0)
     (file-history-mode)
@@ -134,37 +122,10 @@
         (insert (format (concat "%2d %-40s %s\n")
                         i
                         (file-name-nondirectory (buffer-file-name buf))
-
-                        ;; パス表示
                         (file-name-directory (buffer-file-name buf))
-
-;;                         (if file-history-content-display
-;;                             (progn
-;;                               ;; 一行取得
-;;                               (setq infobuf (save-excursion
-;;                                               (set-buffer buf)
-;;                                               (save-excursion
-;;                                                 (buffer-substring
-;;                                                  (point-min)
-;;                                                  (progn
-;;                                                    (goto-line 1)
-;;                                                    (end-of-line)
-;;                                                    (point))))))
-;;
-;;                               ;; 60文字以上なら切り詰めて ... を付加
-;;                               (if (> (length infobuf) file-history-content-limit)
-;;                                   (concat (substring infobuf 0 (- file-history-content-limit 3)) "...")
-;;                                 infobuf)
-;;
-;; )
-;;                           "")
-
-
-                          ))
+                        ))
         (setq i (+ i 1)))))
   (insert "== ======================================== ===========================================================================\n")
-  (file-history-remove-overlays)
-  (file-history-color)
   (setq buffer-read-only t))
 
 (defun file-history-get-current-buffer ()
@@ -176,9 +137,9 @@
         buffer)
     ;; (message "0から始まる現在の行=%d" line)
     (setq buffer (nth (file-history-index) file-history-buffers))
-;;     (unless buffer
-;;       (error "バッファが見付かりません。")
-;;       )
+    ;;     (unless buffer
+    ;;       (error "バッファが見付かりません。")
+    ;;       )
     buffer
     )
   )
@@ -232,14 +193,14 @@
       ;; (error "カーソルが変なところにあります。")
       (1- (length file-history-buffers))
       ))
-    )
+  )
 
 (defun file-history-forward-line (arg)
   "カーソルの移動。範囲外だと移動しない。"
   (interactive "p")
   (let ((index (+ (file-history-index) arg)))
     (if (file-history-index-p index)
-       (file-history-index-set index))))
+        (file-history-index-set index))))
 
 (defun file-history-index-p (index)
   "指定したインデックスは範囲内か?"
@@ -252,10 +213,7 @@
   (setq index (max index 0))
   (setq index (min index (1- (length file-history-buffers))))
   (goto-line (+ 3 index))
-  (move-to-column 3)
-  (when file-history-preview
-    (if (file-history-get-current-buffer)
-        (file-history-render-preview))))
+  (move-to-column 3))
 
 (defun file-history-next-line ()
   "カーソルを下に移動"
@@ -267,55 +225,7 @@
   (interactive)
   (file-history-forward-line -1))
 
-(defun file-history-render-preview ()
-  "プレビュー画面を表示"
-  (interactive)
-  (let (preview-contents)
-    ;; 挿入するファイル内容を取得する。
-    ;; カーソル位置の前後を取り出す。
-    (save-excursion
-      (set-buffer (file-history-get-current-buffer)) ;カーソル位置の対象のバッファを参照
-      (setq preview-contents
-            (save-excursion             ;その中でのカーソル位置を保存
-              (buffer-substring
-               ;; 上側
-               (save-excursion
-                 (move-to-column 0)
-                 (forward-line (- file-history-padding-top))
-                 (point))
-               ;; 下側
-               (save-excursion
-                 (move-to-column 0)
-                 (forward-line file-history-padding-bottom)
-                 (point)))))
-      )
-
-    (file-history-delete-other-windows)            ;サマリーだけの表示にする(他のウィンドウを閉じる)
-    (split-window (selected-window) nil) ;縦にウィンドウ分割
-    ;; プレビュー用のバッファがあれば一旦削除する。
-    (if (get-buffer "*プレビュー*")
-        (kill-buffer "*プレビュー*"))
-    ;; プレビュー用のバッファを作成し下のウィンドウにセットする。
-    (set-window-buffer (next-window) (get-buffer-create "*プレビュー*"))
-    (save-excursion
-      ;; プレビュー用の画面に書き込む
-      (set-buffer "*プレビュー*")
-      (insert preview-contents)         ;書き込む
-      (setq buffer-read-only t)         ;変更禁止にする
-      )
-    ))
-
-(defun file-history-delete-other-windows ()
-  (when file-history-preview
-    (delete-other-windows)))
-
-(defun file-history-preview-toggle ()
-  "プレビューフラグのトグル"
-  (interactive)
-  (file-history-delete-other-windows)
-  (setq file-history-preview (not file-history-preview))
-  (file-history-index-set (file-history-index))
-  )
+(defun file-history-delete-other-windows ())
 
 (defun file-history-mode ()
   "\\{file-history-mode-map}"
@@ -330,68 +240,9 @@
   (define-key file-history-mode-map "q" 'file-history-quit)
   (define-key file-history-mode-map "d" 'file-history-delete)
   (define-key file-history-mode-map "g" 'file-history-update)
-  (define-key file-history-mode-map "b" 'file-history-preview-toggle)
-  (define-key file-history-mode-map "v" 'file-history-preview-toggle)
   (use-local-map file-history-mode-map)
   (run-hooks 'file-history-mode-hook)
   )
-
-(defvar file-history-overlays nil)
-
-(defface file-history-el-face nil "")
-(defface file-history-html-face nil "")
-(defface file-history-txt-face nil "")
-(defface file-history-ruby-face nil "")
-
-(set-face-foreground 'file-history-el-face "dim gray")
-(set-face-foreground 'file-history-html-face "RoyalBlue3")
-(set-face-foreground 'file-history-txt-face "bisque4")
-(set-face-foreground 'file-history-ruby-face "OrangeRed4")
-
-;; こっちは遅すぎ
-(defun file-history-color ()
-  "*Highlight the file buffer"
-  (interactive)
-  (file-history-color-at "[\_0-9a-zA-Z\-\.~]+\.\\(el\\)\\>" 'file-history-el-face)
-  (file-history-color-at "[\_0-9a-zA-Z\-\.~]+\\.\\(rb\\)\\>" 'file-history-ruby-face)
-  (file-history-color-at "[\_0-9a-zA-Z\-\.~]+\\.\\(html\\.erb\\)\\>" 'file-history-html-face)
-  (file-history-color-at "[\_0-9a-zA-Z\-\.~]+\\.\\(txt\\)\\>" 'file-history-txt-face)
-  )
-
-;; こっちを使うべきか
-(defun file-history-font-lock-add-keywords ()
-  "*色付け"
-  (interactive)
-  (font-lock-add-keywords
-   'file-history-mode
-   '(
-     ("\\(txt\\)" 1 font-lock-warning-face prepend)
-     ("\\<\\(php\\|or\\|not\\)\\>" . font-lock-keyword-face)
-     ))
-  (turn-on-font-lock)
-  )
-
-(defun file-history-color-at (__regexp __face)
-  "*Highlight the file buffer"
-  (interactive)
-  (save-excursion
-    (let (ov)
-      (goto-char (point-min))
-      (while (re-search-forward __regexp nil t)
-        (setq ov (make-overlay (match-beginning 0) (match-end 0)))
-        (overlay-put ov 'face __face)
-        (overlay-put ov 'priority 0)
-        (setq file-history-overlays (cons ov file-history-overlays))
-        (make-local-hook 'after-change-functions)
-        (remove-hook 'after-change-functions 'file-history-remove-overlays)))))
-
-(defun file-history-remove-overlays (&optional beg end length)
-  (interactive)
-  (if (and beg end (= beg end))
-      ()
-    (while file-history-overlays
-      (delete-overlay (car file-history-overlays))
-      (setq file-history-overlays (cdr file-history-overlays)))))
 
 ;; (global-set-key "\C-t" 'file-history)
 
