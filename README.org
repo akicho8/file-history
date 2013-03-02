@@ -20,5 +20,3 @@
   - type RET:         switch to "1 a.rb"
   - type C-t:         switch to "2 b.el"
   - type C-n C-n RET: switch to "3 c.el"
-
-

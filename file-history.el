@@ -166,6 +166,24 @@
     (file-history-index-set save-index))
   (message "update"))
 
+(defun file-history-eshell ()
+  "eshell起動"
+  (interactive)
+  (let ((buffer (file-history-get-current-buffer)))
+    (eshell)
+    (goto-char (point-max))
+    (eshell-bol)
+    (unless (eobp)
+      (kill-line))
+    (insert (concat "pushd " (file-name-directory (buffer-file-name buffer))))
+    (eshell-send-input)))
+
+(defun file-history-dired ()
+  "dired起動"
+  (interactive)
+  (let ((buffer (file-history-get-current-buffer)))
+    (dired-at-point (file-name-directory (buffer-file-name buffer)))))
+
 (defun file-history-quit ()
   "画面を閉じる"
   (interactive)
@@ -240,6 +258,9 @@
   (define-key file-history-mode-map "q" 'file-history-quit)
   (define-key file-history-mode-map "d" 'file-history-delete)
   (define-key file-history-mode-map "g" 'file-history-update)
+  (define-key file-history-mode-map "e" 'file-history-eshell)
+  (define-key file-history-mode-map "h" 'file-history-eshell)
+  (define-key file-history-mode-map "d" 'file-history-dired)
   (use-local-map file-history-mode-map)
   (run-hooks 'file-history-mode-hook)
   )
