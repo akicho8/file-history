@@ -260,7 +260,7 @@
   (define-key file-history-mode-map "g" 'file-history-update)
   (define-key file-history-mode-map "e" 'file-history-eshell)
   (define-key file-history-mode-map "h" 'file-history-eshell)
-  (define-key file-history-mode-map "d" 'file-history-dired)
+  (define-key file-history-mode-map "." 'file-history-dired)
   (use-local-map file-history-mode-map)
   (run-hooks 'file-history-mode-hook)
   )
